@@ -1,0 +1,63 @@
+﻿@page "/users"
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h5">
+            User List
+        </MudText>
+    </MudCardContent>
+
+    <MudCardContent>
+        <MudTable Items="_user" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Phone Number</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.Email</MudTd>
+                <MudTd>@context.PhoneNumber</MudTd>
+                <MudTd>@context.Status</MudTd>
+                <MudTd>
+                    @* <MudButton Color="Color.Primary" Variant="Variant.Text" OnClick="() => "></MudButton> *@
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Color="Color.Success" OnClick="AddUser">Add</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private List<UserVM> _user = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try{
+            _user = (await UserService.GetAllAsync()).ToList();
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"Loi: {ex.Message}");
+        }
+    }
+
+    private void AddUser()
+    {
+        NavigationManager.NavigateTo("/users/create");
+    }
+}

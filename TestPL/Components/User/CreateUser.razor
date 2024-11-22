@@ -1,0 +1,59 @@
+﻿@page "/users/create"
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h5">
+            User Create
+        </MudText>
+    </MudCardContent>
+
+    <MudCardContent>
+        <MudForm @ref="_form">
+            <MudTextField Label="Name" @bind-Value="_user.Name" Required="true" />
+            <MudTextField Label="Email" @bind-Value="_user.Email" Required="true" Type="email" />
+            <MudTextField Label="Phone Number" @bind-Value="_user.PhoneNumber" />
+            <MudSelect @bind-Value="_user.Status" Label="Status" Required="true">
+                <MudSelectItem Value=@("active")> active </MudSelectItem>
+                <MudSelectItem Value=@("inactive")> inactive </MudSelectItem>
+                <MudSelectItem Value=@("suspended")> suspended </MudSelectItem>
+            </MudSelect>
+        </MudForm>
+    </MudCardContent>
+
+    <MudCardActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveUser">Create</MudButton>
+        <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private MudForm? _form;
+    private UserCreateVM _user = new()
+        {
+            Status = "active" 
+        };
+
+    private async Task SaveUser()
+    {
+        try
+        {
+            Console.WriteLine("Creating User...");
+            await UserService.AddAsync(_user);
+            NavigationManager.NavigateTo("/users");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/users");
+    }
+}
