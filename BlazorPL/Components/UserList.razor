@@ -1,0 +1,85 @@
+﻿@page "/users"
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 1000px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">User Management</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudTable Items="users" Striped="true" Bordered="true" Hover="true" Dense="true">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" OnClick="@AddUser">
+                    Add User
+                </MudButton>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Email</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Email</MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>
+                    <MudChip Color="@(context.Status == "active" ? Color.Success : (context.Status == "suspended" ? Color.Warning : Color.Error))">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => EditUser(context.UserId)">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => ConfirmDelete(context.UserId)">
+                        Delete
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<UserVM> users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = (await UserService.GetAllAsync()).ToList();
+    }
+
+    private void AddUser()
+    {
+        Navigation.NavigateTo("/user/add");
+    }
+
+    private void EditUser(int userId)
+    {
+        Navigation.NavigateTo($"/user/edit/{userId}");
+    }
+
+    private async Task ConfirmDelete(int userId)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete Confirmation",
+            "Are you sure you want to delete this user?",
+            yesText: "Yes",
+            noText: "No",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small }
+        );
+
+        if (result == true)
+        {
+            await UserService.DeleteAsync(userId);
+            users = (await UserService.GetAllAsync()).ToList(); 
+        }
+    }
+}

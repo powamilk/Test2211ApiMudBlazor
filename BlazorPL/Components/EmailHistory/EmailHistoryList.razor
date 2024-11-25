@@ -1,0 +1,87 @@
+﻿@page "/email-histories"
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IEmailHistoryService EmailHistoryService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 1000px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">Email History Management</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudTable Items="emailHistories" Striped="true" Bordered="true" Hover="true" Dense="true">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" OnClick="@AddEmailHistory">
+                    Add Email History
+                </MudButton>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Recipient</MudTh>
+                <MudTh>Sent At</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Retry Count</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Recipient</MudTd>
+                <MudTd>@context.SentAt?.ToString("g")</MudTd>
+                <MudTd>
+                    <MudChip Color="@(context.Status == "success" ? Color.Success : (context.Status == "failed" ? Color.Error : Color.Warning))">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd>@context.RetryCount</MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => EditEmailHistory(context.HistoryId)">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => ConfirmDelete(context.HistoryId)">
+                        Delete
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<EmailHistoryVM> emailHistories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        emailHistories = (await EmailHistoryService.GetAllAsync()).ToList();
+    }
+
+    private void AddEmailHistory()
+    {
+        Navigation.NavigateTo("/email-history/add");
+    }
+
+    private void EditEmailHistory(int historyId)
+    {
+        Navigation.NavigateTo($"/email-history/edit/{historyId}");
+    }
+
+    private async Task ConfirmDelete(int historyId)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete Confirmation",
+            "Are you sure you want to delete this email history?",
+            yesText: "Yes",
+            noText: "No",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small }
+        );
+
+        if (result == true)
+        {
+            await EmailHistoryService.DeleteAsync(historyId);
+            emailHistories = (await EmailHistoryService.GetAllAsync()).ToList(); 
+        }
+    }
+}

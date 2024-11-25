@@ -32,10 +32,14 @@
             </RowTemplate>
         </MudTable>
     </MudCardContent>
-    <MudCardActions>
-        <MudButton Color="Color.Success" OnClick="AddUser">Add</MudButton>
-    </MudCardActions>
+
+    <NavLink class="nav-link" href="/users/create">
+        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> create
+    </NavLink>
+
 </MudCard>
+
+<button @onclick="AddUser">Add</button>
 
 @code {
     private List<UserVM> _user = new();

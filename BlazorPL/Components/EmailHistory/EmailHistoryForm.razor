@@ -1,0 +1,112 @@
+﻿@page "/email-history/{Action}/{HistoryId:int?}"
+@using BUS.ViewModel.EmailHistory
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IEmailHistoryService EmailHistoryService
+@inject NavigationManager Navigation
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 600px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">
+            @if (Action == "add")
+            {
+                <span>Add New Email History</span>
+            }
+            else
+            {
+                <span>Edit Email History</span>
+            }
+        </MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudForm @ref="form" Valid="isFormValid">
+            <MudTextField Label="Recipient" @bind-Value="emailHistory.Recipient" Required="true" FullWidth="true"
+                          HelperText="Enter recipient's email address" />
+            <MudDatePicker Label="Sent At" @bind-Value="emailHistory.SentAt" Required="true" FullWidth="true"
+                           HelperText="Select the date and time when the email was sent" />
+            <MudSelect T="string" Label="Status" @bind-Value="emailHistory.Status" Required="true" FullWidth="true"
+                       HelperText="Select the status of the email">
+                @foreach (var status in StatusList)
+                {
+                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField Label="Retry Count" @bind-Value="emailHistory.RetryCount" Type="number" FullWidth="true"
+                          HelperText="Enter the number of retries for this email" />
+
+            <MudSpacer Height="20px" />
+            <MudStack Direction="Row" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveEmailHistory" Disabled="!isFormValid">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string Action { get; set; }
+    [Parameter] public int? HistoryId { get; set; }
+
+    private EmailHistoryCreateVM emailHistory = new();
+    private MudForm form;
+    private bool isFormValid;
+    private List<string> StatusList = new() { "success", "failed", "pending" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Action == "edit" && HistoryId.HasValue)
+        {
+            var historyVM = await EmailHistoryService.GetByIdAsync(HistoryId.Value);
+            emailHistory = new EmailHistoryCreateVM
+                {
+                    EmailId = historyVM.EmailId,
+                    Recipient = historyVM.Recipient,
+                    SentAt = historyVM.SentAt,
+                    Status = historyVM.Status ?? "pending",
+                    RetryCount = historyVM.RetryCount
+                };
+        }
+        else
+        {
+            emailHistory.Status = "pending"; 
+        }
+    }
+
+    private async Task SaveEmailHistory()
+    {
+        await form.Validate();
+
+        if (!isFormValid) return;
+
+        if (Action == "add")
+        {
+            await EmailHistoryService.AddAsync(emailHistory);
+        }
+        else if (Action == "edit" && HistoryId.HasValue)
+        {
+            var updateHistory = new EmailHistoryUpdateVM
+                {
+                    HistoryId = HistoryId.Value,
+                    EmailId = emailHistory.EmailId,
+                    Recipient = emailHistory.Recipient,
+                    SentAt = emailHistory.SentAt,
+                    Status = emailHistory.Status,
+                    RetryCount = emailHistory.RetryCount
+                };
+            await EmailHistoryService.UpdateAsync(updateHistory);
+        }
+
+        Navigation.NavigateTo("/email-histories");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/email-histories");
+    }
+}

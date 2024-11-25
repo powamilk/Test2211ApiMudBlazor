@@ -1,0 +1,116 @@
+﻿@page "/user/{Action}/{UserId:int?}"
+@using BlazorPL.Pages
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 600px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">
+            @if (Action == "add")
+            {
+                <span>Add New User</span>
+            }
+            else
+            {
+                <span>Edit User</span>
+            }
+        </MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudForm @ref="form" Valid="isFormValid">
+            <MudTextField Label="Email" @bind-Value="user.Email" Required="true" Validation="@(new Func<string, string>(ValidateEmail))" FullWidth="true" />
+            <MudTextField Label="Name" @bind-Value="user.Name" Required="true" FullWidth="true" />
+            <MudTextField Label="Phone Number" @bind-Value="user.PhoneNumber" FullWidth="true" />
+
+            <MudSelect T="string" Label="Status" @bind-Value="user.Status" Required="true" FullWidth="true">
+                @foreach (var status in StatusList)
+                {
+                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSpacer Height="20px" />
+
+            <MudStack Direction="Row" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveUser" Disabled="!isFormValid">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string Action { get; set; }
+    [Parameter] public int? UserId { get; set; }
+
+    private UserCreateVM user = new();
+    private List<string> StatusList = new() { "active", "inactive", "suspended" };
+    private MudForm form;
+    private bool isFormValid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Action == "edit" && UserId.HasValue)
+        {
+            var userVM = await UserService.GetByIdAsync(UserId.Value);
+            user = new UserCreateVM
+                {
+                    Email = userVM.Email,
+                    Name = userVM.Name,
+                    PhoneNumber = userVM.PhoneNumber,
+                    Status = userVM.Status ?? "active",
+                    CreatedAt = userVM.CreatedAt
+                };
+        }
+        else
+        {
+            user.Status = "active"; 
+        }
+    }
+
+    private async Task SaveUser()
+    {
+        await form.Validate();
+
+        if (!isFormValid) return;
+
+        if (Action == "add")
+        {
+            await UserService.AddAsync(user);
+        }
+        else if (Action == "edit" && UserId.HasValue)
+        {
+            var updateUser = new UserUpdateVM
+                {
+                    UserId = UserId.Value,
+                    Email = user.Email,
+                    Name = user.Name,
+                    PhoneNumber = user.PhoneNumber,
+                    Status = user.Status,
+                    CreatedAt = user.CreatedAt
+                };
+            await UserService.UpdateAsync(updateUser);
+        }
+        Navigation.NavigateTo("/users");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/users");
+    }
+
+    private string ValidateEmail(string email)
+    {
+        if (string.IsNullOrEmpty(email)) return "Email is required.";
+        if (!email.Contains("@")) return "Invalid email format.";
+        return null;
+    }
+}

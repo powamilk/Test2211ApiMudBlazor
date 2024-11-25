@@ -1,0 +1,102 @@
+﻿@page "/email/{Action}/{EmailId:int?}"
+@using BUS.ViewModel.Email
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 600px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">
+            @if (Action == "add")
+            {
+                <span>Add New Email</span>
+            }
+            else
+            {
+                <span>Edit Email</span>
+            }
+        </MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudForm @ref="form" Valid="isFormValid">
+            <MudTextField Label="Subject" @bind-Value="email.Subject" Required="true" FullWidth="true" />
+            <MudTextField Label="Body" @bind-Value="email.Body" Required="true" FullWidth="true" />
+            <MudSelect T="string" Label="Status" @bind-Value="email.Status" Required="true" FullWidth="true">
+                @foreach (var status in StatusList)
+                {
+                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSpacer Height="20px" />
+            <MudStack Direction="Row" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveEmail" Disabled="!isFormValid">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string Action { get; set; }
+    [Parameter] public int? EmailId { get; set; }
+
+    private EmailCreateVM email = new();
+    private MudForm form;
+    private bool isFormValid;
+    private List<string> StatusList = new() { "sent", "pending", "failed" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Action == "edit" && EmailId.HasValue)
+        {
+            var emailVM = await EmailService.GetByIdAsync(EmailId.Value);
+            email = new EmailCreateVM
+                {
+                    Subject = emailVM.Subject,
+                    Body = emailVM.Body,
+                    Status = emailVM.Status ?? "pending",
+                };
+        }
+        else
+        {
+            email.Status = "pending"; 
+        }
+    }
+
+    private async Task SaveEmail()
+    {
+        await form.Validate();
+
+        if (!isFormValid) return;
+
+        if (Action == "add")
+        {
+            await EmailService.AddAsync(email);
+        }
+        else if (Action == "edit" && EmailId.HasValue)
+        {
+            var updateEmail = new EmailUpdateVM
+                {
+                    EmailId = EmailId.Value,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    Status = email.Status
+                };
+            await EmailService.UpdateAsync(updateEmail);
+        }
+
+        Navigation.NavigateTo("/emails");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/emails");
+    }
+}

@@ -1,0 +1,86 @@
+﻿@page "/emails"
+@using BUS.ViewModel.Email
+@using MudBlazor
+@using TestBUS.Service.Interface
+@using TestBUS.ViewModel
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<MudCard Class="mx-auto mt-4" Style="max-width: 1000px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">Email Management</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudTable Items="emails" Striped="true" Bordered="true" Hover="true" Dense="true">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" OnClick="@AddEmail">
+                    Add Email
+                </MudButton>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Subject</MudTh>
+                <MudTh>Body</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Subject</MudTd>
+                <MudTd>@context.Body</MudTd>
+                <MudTd>
+                    <MudChip Color="@(context.Status == "sent" ? Color.Success : (context.Status == "pending" ? Color.Warning : Color.Error))">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => EditEmail(context.EmailId)">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => ConfirmDelete(context.EmailId)">
+                        Delete
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<EmailVM> emails = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        emails = (await EmailService.GetAllAsync()).ToList();
+    }
+
+    private void AddEmail()
+    {
+        Navigation.NavigateTo("/email/add");
+    }
+
+    private void EditEmail(int emailId)
+    {
+        Navigation.NavigateTo($"/email/edit/{emailId}");
+    }
+
+    private async Task ConfirmDelete(int emailId)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete Confirmation",
+            "Are you sure you want to delete this email?",
+            yesText: "Yes",
+            noText: "No",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small }
+        );
+
+        if (result == true)
+        {
+            await EmailService.DeleteAsync(emailId);
+            emails = (await EmailService.GetAllAsync()).ToList(); // Refresh list
+        }
+    }
+}
